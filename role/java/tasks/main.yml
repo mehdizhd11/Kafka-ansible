@@ -1,0 +1,27 @@
+---
+# tasks file for java
+- name: Update apt
+  apt:
+    update_cache: yes
+
+- name: Check Java
+  command: java -version
+  register: java
+  ignore_errors: yes
+
+- name: Install Java
+  apt:
+    name: default-jre  
+    state: present
+  when: java.rc != 0
+
+- name: Check JDK
+  command: javac -version
+  register: jdk
+  ignore_errors: yes
+
+- name: Install JDK
+  apt:
+    name: default-jdk
+    state: present
+  when: jdk.rc != 0
