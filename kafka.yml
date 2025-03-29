@@ -1,6 +1,6 @@
 ---
 - name: Install Apache Kafka
-  hosts: local
+  hosts: kafka
   become: yes
   roles:
     - role: java

@@ -1,6 +1,6 @@
 ---
 - name: install java 11
-  hosts: local
+  hosts: kafka
   become: yes
   roles:
     - role: java
