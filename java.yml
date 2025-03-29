@@ -3,5 +3,5 @@
   hosts: local
   become: yes
   roles:
-    - role: "../../role/java"
+    - role: java
 
