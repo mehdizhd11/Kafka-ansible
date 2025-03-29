@@ -1,0 +1,8 @@
+---
+- name: Cluster nodes with kraft
+  hosts: kafka
+  become: yes
+  roles:
+    - role: java
+    - role: kafka
+    - role: kraft

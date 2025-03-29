@@ -1,0 +1,99 @@
+---
+# tasks file for kraft
+- name: Stop kafka service
+  systemd:
+    name: kafka
+    state: stopped
+
+- name: Config cluster in node
+  become_user: kafka
+  block:
+    - name: Config node id
+      lineinfile:
+        path: ~/kafka/config/kraft/server.properties
+        regexp: "^node.id="
+        line: "node.id={{ id }}"
+        state: present
+    
+    - name: Generate kafka_controllers variable
+      set_fact:
+        kafka_controllers: >-
+          {% set sorted_hosts = groups['kafka'] | map('extract', hostvars) | list | sort(attribute='id') %}
+          {% for host in sorted_hosts -%}
+          {{ host.id }}@{{ host.ansible_host }}:9093
+          {%- if not loop.last %},{%- endif %}
+          {%- endfor %}
+      run_once: true  
+
+    - name: Config controller.quorum.voters
+      lineinfile:
+        path: ~/kafka/config/kraft/server.properties
+        regexp: "^controller.quorum.voters="
+        line: "controller.quorum.voters={{ kafka_controllers }}"
+        state: present
+
+    - name: Config listeners
+      lineinfile:
+        path: ~/kafka/config/kraft/server.properties
+        regexp: "^listeners="
+        line: "listeners=PLAINTEXT://{{ ansible_host }}:9092,CONTROLLER://{{ ansible_host }}:9093" 
+        state: present
+
+    - name: Config advertised.listeners
+      lineinfile:
+        path: ~/kafka/config/kraft/server.properties
+        regexp: "^advertised.listeners="
+        line: "advertised.listeners=PLAINTEXT://{{ ansible_host }}:9092"
+
+    - name: Config num.partitions
+      lineinfile:
+        path: ~/kafka/config/kraft/server.properties
+        regexp: "^num.partitions="
+        line: "num.partitions=6"
+        state: present
+
+    - name: Config offsets.topic.replication.factor
+      lineinfile:
+        path: ~/kafka/config/kraft/server.properties
+        regexp: "^offsets.topic.replication.factor="
+        line: "offsets.topic.replication.factor=2"
+        state: present
+
+    - name: Config transaction.state.log.replication.factor
+      lineinfile:
+        path: ~/kafka/config/kraft/server.properties
+        regexp: "^transaction.state.log.replication.factor="
+        line: "transaction.state.log.replication.factor=2"
+        state: present
+
+- name: Delete existing logs
+  shell: rm -rf /home/kafka/kafka-logs/*
+
+- name: Share cluster id and create new storage log
+  become_user: kafka
+  block:
+    - name: Create new Kafka storage with cluster ID
+      shell: |
+        ./bin/kafka-storage.sh format -t "$KAFKA_CLUSTER_ID" -c config/kraft/server.properties
+      args:
+        chdir: ~/kafka
+      environment:
+        KAFKA_CLUSTER_ID: "Ph8v9ynXRkefuEbk7ivIUw"
+- name: Start kafka service
+  block:
+    - name: Enable Kafka service (start on boot)
+      systemd:
+        name: kafka
+        enabled: yes
+        state: started
+    
+    - name: Verify Kafka service status
+      systemd:
+        name: kafka
+        state: started
+      register: kafka_status
+      changed_when: false 
+
+    - name: Display Kafka service status
+      debug:
+        msg: "Kafka service is {{ 'running' if kafka_status.status.ActiveState == 'active' else 'not running' }}"

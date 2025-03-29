@@ -43,10 +43,6 @@
         - "'Error' in log.stderr"
         - log.rc != 0
 
-    - name: Show results
-      debug:
-          var: log.stdout_lines
-
 - name: Creating a systemd service for kafka
   block:
     - name: Create Kafka systemd service file
