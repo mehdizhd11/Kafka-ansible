@@ -43,3 +43,6 @@ ansible-playbook -i inv.ini kraft.yml
 ```
 
 > **Note**: Requires minimum 3 nodes for production KRaft deployment
+
+### Source 
+https://www.digitalocean.com/community/tutorials/how-to-set-up-a-multi-node-kafka-cluster-using-kraft
