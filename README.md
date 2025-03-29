@@ -33,7 +33,7 @@ ansible_user=ubuntu
 ### kraft
 - Sets up KRaft consensus
 - Configures controller nodes  
-- Generates cluster ID
+- Config the nodes in cluster
 
 ## Usage
 ```bash
