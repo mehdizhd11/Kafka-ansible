@@ -1,0 +1,92 @@
+---
+# tasks file for kafka
+- name: Add kafka user
+  user:
+    name: kafka
+    state: present
+    create_home: yes
+
+- name: Prepare files and directories
+  become_user: kafka
+  block:
+    - name: Create ~/kafka directory
+      file:
+        path: ~/kafka
+        state: directory
+
+    - name: Extract file to ~/kafka
+      unarchive:
+        src: files/kafka.tgz
+        dest: ~/kafka/
+        remote_src: no
+        extra_opts: "--strip-components=1" 
+
+- name: Config kafka log and cluster ID
+  become_user: kafka
+  block:
+    - name: Change log directory
+      lineinfile:
+        path: ~/kafka/config/kraft/server.properties
+        regexp: "^log.dirs"
+        line: "log.dirs=/home/kafka/kafka-logs"
+        state: present
+
+    - name: Generate cluster ID and format Kafka storage
+      shell: |
+        export KAFKA_CLUSTER_ID="$(bin/kafka-storage.sh random-uuid)" && 
+        bin/kafka-storage.sh format -t "$KAFKA_CLUSTER_ID" -c config/kraft/server.properties
+      args:
+        chdir: ~/kafka
+      register: log
+      changed_when: "'Formatting' in log.stdout"
+      failed_when: 
+        - "'Error' in log.stderr"
+        - log.rc != 0
+
+    - name: Show results
+      debug:
+          var: log.stdout_lines
+
+- name: Creating a systemd service for kafka
+  block:
+    - name: Create Kafka systemd service file
+      copy:
+        dest: /etc/systemd/system/kafka.service
+        content: |
+          [Unit]
+          Description=kafka-server
+
+          [Service]
+          Type=simple
+          User=kafka
+          ExecStart=/bin/sh -c '/home/kafka/kafka/bin/kafka-server-start.sh /home/kafka/kafka/config/kraft/server.properties > \
+          /home/kafka/kafka/kafka.log 2>&1'
+          ExecStop=/home/kafka/kafka/bin/kafka-server-stop.sh
+          Restart=on-abnormal
+
+          [Install]
+          WantedBy=multi-user.target
+        owner: root
+        group: root
+        mode: 0644
+
+    - name: Reload systemd daemon
+      systemd:
+        daemon_reload: yes
+
+    - name: Enable Kafka service (start on boot)
+      systemd:
+        name: kafka
+        enabled: yes
+        state: started
+
+    - name: Verify Kafka service status
+      systemd:
+        name: kafka
+        state: started
+      register: kafka_status
+      changed_when: false  # This check doesn't modify state
+
+    - name: Display Kafka service status
+      debug:
+        msg: "Kafka service is {{ 'running' if kafka_status.status.ActiveState == 'active' else 'not running' }}"

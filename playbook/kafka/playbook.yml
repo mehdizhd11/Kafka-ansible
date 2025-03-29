@@ -1,0 +1,6 @@
+---
+- name: Install Apache Kafka
+  hosts: local
+  become: yes
+  roles:
+    - role: "../../role/kafka"
