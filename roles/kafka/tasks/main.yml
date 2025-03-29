@@ -81,7 +81,7 @@
         name: kafka
         state: started
       register: kafka_status
-      changed_when: false  # This check doesn't modify state
+      changed_when: false 
 
     - name: Display Kafka service status
       debug:

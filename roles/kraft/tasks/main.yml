@@ -79,6 +79,7 @@
         chdir: ~/kafka
       environment:
         KAFKA_CLUSTER_ID: "Ph8v9ynXRkefuEbk7ivIUw"
+
 - name: Start kafka service
   block:
     - name: Enable Kafka service (start on boot)

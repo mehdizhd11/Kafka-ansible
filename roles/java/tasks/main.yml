@@ -1,8 +1,8 @@
 ---
 # tasks file for java
-#- name: Update apt
-  #  apt:
-    #    update_cache: yes
+- name: Update apt
+  apt:
+    update_cache: no
 
 - name: Check Java
   command: java -version
